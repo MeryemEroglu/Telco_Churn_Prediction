@@ -1,11 +1,13 @@
-import numpy as np
+# EXPLORATORY DATA ANALYSIS
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 import warnings
 warnings.simplefilter(action="ignore")
-
 
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', 170)
@@ -18,8 +20,6 @@ df.head()
 df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors='coerce')
 df["Churn"] = df["Churn"].apply(lambda x: 1 if x == "Yes" else 0)
 
-
-# EXPLORATORY DATA ANALYSIS
 # Examine the overall picture.
 def check_df(dataframe, head=5):
     """
@@ -48,7 +48,6 @@ def check_df(dataframe, head=5):
     print(dataframe.quantile([0, 0.05, 0.50, 0.99, 1]).T)
 
 check_df(df)
-
 
 def grab_col_names(dataframe, cat_th=10, car_th=20):
     """
@@ -105,6 +104,7 @@ print(f"Numerical columns: {num_cols}")
 print(f"Categorical columns {cat_cols}")
 print(f"Categorical but cardinal columns: {cat_but_car}")
 
+
 #ANALYSIS OF CATEGORICAL VARIABLES
 def cat_summary(dataframe, categorical_col, plot=False):
     """
@@ -128,6 +128,7 @@ def cat_summary(dataframe, categorical_col, plot=False):
 
 for col in cat_cols:
     cat_summary(df, col)
+
 
 #ANALYSIS OF NUMERICAL VARIABLES
 def num_summary(dataframe, numerical_col, plot=False):
@@ -174,3 +175,58 @@ df[df["Contract"] == "Two year"]["MonthlyCharges"].hist(bins=20)
 plt.xlabel("MonthlyCharges")
 plt.title("Two year")
 plt.show()
+
+# ANALYSIS OF NUMERIC VARIABLES BY TARGET
+def target_summary_with_num(dataframe, target, numerical_col):
+    """
+    Display the mean of a numerical variable grouped by the target variable in a DataFrame.
+
+    Parameters
+    ----------
+    dataframe (DataFrame): The DataFrame containing the data.
+    target (str): The name of the target variable.
+    numerical_col (str): The name of the numerical column to be analyzed.
+    """
+    print(dataframe.groupby(target).agg({numerical_col: "mean"}), end="\n\n\n")
+
+for col in num_cols:
+    target_summary_with_num(df, "Churn", col)
+
+# ANALYSIS OF CATEGORICAL VARIABLES BY TARGET
+def target_summary_with_cat(dataframe, target, categorical_col):
+    """
+
+    Calculate the mean target value grouped by a categorical column, along with count and ratio.
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        The DataFrame containing the data.
+    target : str
+        The name of the target column.
+    categorical_col : str
+        The name of the categorical column to group by.
+    """
+    print(categorical_col)
+    print(pd.DataFrame({"TARGET_MEAN": dataframe.groupby(categorical_col)[target].mean(),
+                        "Count": dataframe[categorical_col].value_counts(),
+                        "Ratio": 100 * dataframe[categorical_col].value_counts() / len(dataframe)}), end="\n\n\n")
+
+for col in cat_cols:
+    target_summary_with_cat(df, "Churn", col)
+
+
+# CORRELATION
+df[num_cols].corr()
+
+# Correlation Matrix
+# The correlation matrix is computed for numerical columns and visualized using a heatmap.
+f, ax = plt.subplots(figsize=[18, 13])
+sns.heatmap(df[num_cols].corr(), annot=True, fmt=".2f", ax=ax, cmap="magma")
+ax.set_title("Correlation Matrix", fontsize=20)
+plt.show()
+
+# TotalCharges is seen to have a high correlation with monthly charges and tenure.
+# There is a positive correlation between TotalCharges and both MonthlyCharges and tenure,
+# indicating that customers with higher monthly charges and longer tenure tend to have higher total charges.
+df.corrwith(df["Churn"]).sort_values(ascending=False)
+
