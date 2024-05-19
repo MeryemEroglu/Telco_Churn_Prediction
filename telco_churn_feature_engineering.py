@@ -115,3 +115,91 @@ for name, model in models:
 # F1 Score: A balance between precision and recall, calculated as 2 * (Precision * Recall) / (Precision + Recall)
 # AUC (Area Under the Curve): Measures the classifier's ability to distinguish between positive and negative classes.
 
+
+# ANALYSIS OF OUTLIER
+
+def outlier_thresholds(dataframe, col_name, q1=0.05, q3=0.95):
+    """
+    Calculate the lower and upper outlier detection thresholds for a numerical column in a DataFrame.
+
+    Parameters
+    ----------
+    dataframe (DataFrame): The DataFrame containing the data.
+    col_name (str): The name of the numerical column for which outlier thresholds are calculated.
+    q1 (float, optional): The lower quartile (default is 0.25).
+    q3 (float, optional): The upper quartile (default is 0.75).
+
+    Returns
+    -------
+    low_limit (float, optional): The lower threshold for detecting outliers.
+    up_limit (float, optional): The upper threshold for detecting outliers.
+    """
+    quartile1 = dataframe[col_name].quantile(q1)
+    quartile3 = dataframe[col_name].quantile(q3)
+    interquantile_range = quartile3 - quartile1
+    up_limit = quartile3 + 1.5 * interquantile_range
+    low_limit = quartile1 - 1.5 * interquantile_range
+    return low_limit, up_limit
+
+def check_outlier(dataframe, col_name):
+    """
+    Check for outliers in a specified numerical column of a DataFrame.
+
+    Parameters
+    ----------
+    dataframe : pd.DataFrame
+        The DataFrame containing the data.
+    col_name : str
+        The name of the numerical column to check for outliers.
+
+    Returns
+    -------
+    bool
+        True if outliers are found, False otherwise.
+
+    Notes
+    -----
+    This function checks for outliers in the specified numerical column of the DataFrame by comparing the values
+    to the lower and upper outlier thresholds. If any values in the column fall outside of these thresholds,
+    the function returns True, indicating the presence of outliers. Otherwise, it returns False.
+    """
+    low_limit, up_limit = outlier_thresholds(dataframe, col_name)
+    if dataframe[(dataframe[col_name] > up_limit) | (dataframe[col_name] < low_limit)].any(axis=None):
+        return True
+    else:
+        return False
+
+def replace_with_thresholds(dataframe, variable, q1=0.05, q3=0.95):
+    """
+    Replace outliers in a DataFrame column with specified lower and upper limits.
+
+    Parameters
+    ----------
+    dataframe : pandas.DataFrame
+        The DataFrame containing the data.
+    variable : str
+        The name of the column in the DataFrame where outliers should be replaced.
+    q1 : float, optional
+        The lower quantile used to calculate the lower threshold. Default is 0.05.
+    q3 : float, optional
+        The upper quantile used to calculate the upper threshold. Default is 0.95.
+
+    Returns
+    -------
+    None
+        This function modifies the input DataFrame in place.
+
+    Notes
+    -----
+    Outliers are replaced with the calculated lower and upper limits as follows:
+    - Values less than the lower limit are set to the lower limit.
+    - Values greater than the upper limit are set to the upper limit.
+    """
+    low_limit, up_limit = outlier_thresholds(dataframe, variable, q1=0.05, q3=0.95)
+    dataframe.loc[(dataframe[variable] < low_limit), variable] = low_limit
+    dataframe.loc[(dataframe[variable] > up_limit), variable] = up_limit
+
+for col in num_cols:
+    print(col, check_outlier(df, col))
+    if check_outlier(df, col):
+        replace_with_thresholds(df, col)
